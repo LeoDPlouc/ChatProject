@@ -8,8 +8,10 @@ import threading
 import socket
 
 
-from log import *
-from user import *
+from log import add_log
+from user import signup, signin
+from EnvoieFichierClient import recv_file
+from EnvoieFichierServeur import envoi_fichier
 
 host="127.0.0.1"
 port=5001
@@ -18,6 +20,7 @@ server=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((host,port))
 server.listen()
 
+addresses=[]
 clients=[]
 nicknames=[]
 
@@ -31,11 +34,26 @@ def handle(client):
             index=clients.index(client)
             nickname=nicknames[index]
 
-            message=client.recv(1024).decode("ascii")
+            message, address = client.recvfrom(1024)
+            message = message.decode("ascii")
+
+            if message[0:3]=='snd':
+                file = recv_file()
+                broadcast("rcv".encode('ascii'))
+                for client in clients:
+                    thread = threading.Thread(target=envoi_fichier, args=(file, addresses[index]))
+                    thread.start()
+
+                continue
+
+
+
+            add_log(nickname, address[0], "TXT")
             message = "{} : {}".format(nickname, message)
             message = message.encode("ascii")
             broadcast(message)
-        except:
+        except Exception as e:
+            print(e)
             index=clients.index(client)
             clients.remove(client)
             client.close()
@@ -50,6 +68,7 @@ def receive():
 
         client, address=server.accept()
         print(f"Connect with " +str(address))
+        add_log(nickname, address[0], "CON")
         
         log=-1
         while log != 0:
@@ -59,6 +78,7 @@ def receive():
                 arg=messageTexte.split(' ')[1:3]
                 log=signin(arg[0],arg[1])
                 nickname = arg[0]
+                add_log(nickname, address[0], "CON")
                 if log==0:
                     client.send(f'Success log'.encode('ascii'))
                 elif log==1:
@@ -70,6 +90,7 @@ def receive():
 
         nicknames.append(nickname)
         clients.append(client)
+        addresses.append(address[0])
         
         print(f'Nickname of the client is '+ nickname)
         broadcast(f'{nickname} joined the chat'.encode('ascii'))

@@ -11,12 +11,13 @@ import argparse
 
 SEPARATEUR = "<SEPARATOR>"
 BUFFER_SIZE = 1024 * 70 #4KB
+port = 5002
 
-def envoi_fichier(nomFichier, host, port):
+def envoi_fichier(nomFichier, host):
     # récupère taille du fichier
     tailleFichier = os.path.getsize(nomFichier)
     # création socket client
-    s = socket.socket()
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print(f"[+] Connexion à {host}:{port}")
     s.connect((host, port))
     print("[+] Connecté.")
@@ -51,4 +52,4 @@ if __name__ == "__main__":
     nomFichier = args.file
     host = args.host
     port = args.port
-    envoi_fichier(nomFichier, host, port)
+    envoi_fichier(nomFichier, host)
